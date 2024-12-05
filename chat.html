@@ -1,0 +1,58 @@
+<!-- Call Notification Modal (initially hidden) -->
+<div id="callNotification" style="display:none;">
+    <div id="callNotificationContent">
+        <p>You have an incoming call</p>
+        <button onclick="acceptCall()">Accept</button>
+        <button onclick="rejectCall()">Reject</button>
+    </div>
+</div>
+
+<video id="localVideo" width="320" height="240" autoplay></video>
+<video id="remoteVideo" width="320" height="240" autoplay></video>
+
+<script>
+// Listen for the incoming call
+signalingSocket.on('incoming_call', (data) => {
+    const callNotification = document.getElementById('callNotification');
+    callNotification.style.display = 'block';
+
+    // Update the modal with caller's info
+    document.querySelector('#callNotification p').innerText = `Incoming call from User ${data.fromUserId}`;
+    
+    // Store the caller's ID for later use
+    window.callerUserId = data.fromUserId;
+});
+
+// Accept call function
+function acceptCall() {
+    signalingSocket.emit('send_answer', { userId: window.callerUserId, answer: 'accepted' });
+    document.getElementById('callNotification').style.display = 'none';
+    startVideoCall(window.callerUserId);
+}
+
+// Reject call function
+function rejectCall() {
+    signalingSocket.emit('send_rejection', { userId: window.callerUserId, message: 'User has rejected the call' });
+    document.getElementById('callNotification').style.display = 'none';
+}
+
+// End call function (once the call is over)
+function endCall() {
+    signalingSocket.emit('end_call', {
+        userId: window.callerUserId
+    });
+
+    // Close the video call
+    const localVideo = document.getElementById('localVideo');
+    const remoteVideo = document.getElementById('remoteVideo');
+
+    if (localVideo.srcObject) {
+        localVideo.srcObject.getTracks().forEach(track => track.stop());
+    }
+    if (remoteVideo.srcObject) {
+        remoteVideo.srcObject.getTracks().forEach(track => track.stop());
+    }
+
+    window.location.href = "chat.php"; // Navigate back to the chat page after call ends
+}
+</script>
